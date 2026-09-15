@@ -4,113 +4,58 @@ import { useAuth } from './AuthContext';
 export default function AuthScreen() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState('login');
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+
+  const submit = async (event) => {
+    event.preventDefault();
     setBusy(true);
     setError('');
-
+    setMessage('');
     try {
       if (mode === 'signup') {
-        await signUp({ email, password, fullName });
-        alert('Account created. Check your email if confirmation is required.');
-        setMode('login');
+        if (!form.fullName.trim()) throw new Error('Please enter your full name.');
+        if (form.password.length < 8) throw new Error('Password must be at least 8 characters.');
+        const data = await signUp(form);
+        if (!data.session) {
+          setMessage('Account created. Check your email to confirm your account, then sign in.');
+          setMode('login');
+        }
       } else {
-        await signIn({ email, password });
+        await signIn(form);
       }
-    } catch (err) {
-      setError(err.message || 'Something went wrong.');
+    } catch (e) {
+      setError(e.message || 'Authentication failed.');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="authPage">
-      <div className="authCard">
-        <div className="brand">
-          THREESIXTY<span>FX</span>
-          <small>TRADE SMART. TRADE THREESIXTY.</small>
+    <div className="authShell">
+      <div className="authGlow" />
+      <section className="authCard">
+        <div className="brand authBrand">THREESIXTY<span>FX</span><small>TRADE SMART. TRADE THREESIXTY.</small></div>
+        <div className="authTabs">
+          <button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); setMessage(''); }}>Sign In</button>
+          <button className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError(''); setMessage(''); }}>Create Account</button>
         </div>
-
         <h1>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
-
-        <p className="authIntro">
-          {mode === 'login'
-            ? 'Sign in to access your THREESIXTYFX control center.'
-            : 'Create your THREESIXTYFX account to get started.'}
-        </p>
-
-        <form onSubmit={submit}>
-          {mode === 'signup' && (
-            <label>
-              Full Name
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your full name"
-                required
-              />
-            </label>
-          )}
-
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-          </label>
-
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              minLength={6}
-              required
-            />
-          </label>
-
-          {error && <div className="errorBox">{error}</div>}
-
-          <button className="gold authButton" disabled={busy}>
-            {busy
-              ? 'Please wait…'
-              : mode === 'login'
-                ? 'Sign In'
-                : 'Create Account'}
-          </button>
+        <p className="authIntro">{mode === 'login' ? 'Sign in to your THREESIXTYFX control center.' : 'Create your THREESIXTYFX account to manage your automation platform.'}</p>
+        <form onSubmit={submit} className="authForm">
+          {mode === 'signup' && <label>Full Name<input value={form.fullName} onChange={e => update('fullName', e.target.value)} placeholder="Your full name" autoComplete="name" /></label>}
+          <label>Email<input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
+          <label>Password<input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="At least 8 characters" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required /></label>
+          {error && <div className="authError">{error}</div>}
+          {message && <div className="authSuccess">{message}</div>}
+          <button className="gold authSubmit" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}</button>
         </form>
-
-        <div className="authSwitch">
-          {mode === 'login' ? (
-            <>
-              Don't have an account?{' '}
-              <button type="button" onClick={() => setMode('signup')}>
-                Create one
-              </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button type="button" onClick={() => setMode('login')}>
-                Sign in
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+        <p className="authFoot">Your account will later control your bots, trading accounts, subscriptions and trade history.</p>
+      </section>
     </div>
   );
 }
