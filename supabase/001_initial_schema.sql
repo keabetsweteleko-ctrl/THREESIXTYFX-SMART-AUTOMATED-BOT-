@@ -223,3 +223,152 @@ using (
 --
 -- License creation and administration will be handled
 -- by the THREESIXTYFX admin system.
+-- ============================================
+-- THREESIXTYFX SECURE LICENSE FUNCTIONS
+-- ============================================
+
+-- Check whether the currently logged-in user is an admin.
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and role = 'admin'
+  );
+$$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to authenticated;
+
+
+-- Allow an admin to generate a new license code.
+create or replace function public.generate_license(
+  p_plan text,
+  p_days integer default 30
+)
+returns public.licenses
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_code text;
+  v_license public.licenses;
+begin
+
+  if not public.is_admin() then
+    raise exception 'Admin access required';
+  end if;
+
+  if p_plan not in ('pro', 'lifetime') then
+    raise exception 'Invalid license plan';
+  end if;
+
+  if p_plan = 'pro'
+     and (p_days is null or p_days < 1 or p_days > 3650) then
+    raise exception 'Invalid Pro license duration';
+  end if;
+
+  v_code :=
+    'TFX-' ||
+    upper(p_plan) ||
+    '-' ||
+    upper(encode(gen_random_bytes(4), 'hex')) ||
+    '-' ||
+    upper(encode(gen_random_bytes(4), 'hex'));
+
+  insert into public.licenses (
+    code,
+    plan,
+    status,
+    created_by
+  )
+  values (
+    v_code,
+    p_plan,
+    'unused',
+    auth.uid()
+  )
+  returning * into v_license;
+
+  return v_license;
+
+end;
+$$;
+
+revoke all on function public.generate_license(text, integer) from public;
+grant execute on function public.generate_license(text, integer) to authenticated;
+
+
+-- Allow a logged-in customer to activate an unused license.
+create or replace function public.activate_license(
+  p_code text
+)
+returns public.licenses
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_license public.licenses;
+begin
+
+  if auth.uid() is null then
+    raise exception 'You must be logged in to activate a license';
+  end if;
+
+  select *
+  into v_license
+  from public.licenses
+  where code = upper(trim(p_code))
+  for update;
+
+  if not found then
+    raise exception 'Invalid activation code';
+  end if;
+
+  if v_license.status = 'revoked' then
+    raise exception 'This activation code has been revoked';
+  end if;
+
+  if v_license.status <> 'unused' then
+    raise exception 'This activation code has already been used';
+  end if;
+
+  update public.licenses
+  set
+    status = 'active',
+    used_by = auth.uid(),
+    activated_at = now(),
+    expires_at = case
+      when plan = 'pro' then now() + interval '30 days'
+      else null
+    end,
+    updated_at = now()
+  where id = v_license.id
+  returning * into v_license;
+
+  return v_license;
+
+end;
+$$;
+
+revoke all on function public.activate_license(text) from public;
+grant execute on function public.activate_license(text) to authenticated;
+
+
+-- Admins can view all license records.
+drop policy if exists licenses_admin_select on public.licenses;
+
+create policy licenses_admin_select
+on public.licenses
+for select
+to authenticated
+using (
+  public.is_admin()
+);
