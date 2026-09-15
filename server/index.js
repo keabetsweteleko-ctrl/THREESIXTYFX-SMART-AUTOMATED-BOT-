@@ -130,4 +130,4 @@ app.get('/api/paystack/verify/:reference', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`THREESIXTYFX API running on port ${PORT}`));
+app.listen(PORT, () => console.log(`THREESIXTYFX API running on port ${PORT}`)); 
