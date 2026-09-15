@@ -50,10 +50,8 @@ create table if not exists public.trading_accounts (
 
 alter table public.bots
   drop constraint if exists bots_account_id_fkey;
-
 alter table public.bots
-  add constraint bots_account_id_fkey
-  foreign key (account_id) references public.trading_accounts(id) on delete set null;
+  add constraint bots_account_id_fkey foreign key (account_id) references public.trading_accounts(id) on delete set null;
 
 create table if not exists public.trades (
   id uuid primary key default gen_random_uuid(),
@@ -115,7 +113,6 @@ end;
 $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
-
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
@@ -132,16 +129,12 @@ $$;
 
 drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at before update on public.profiles for each row execute procedure public.set_updated_at();
-
 drop trigger if exists bots_updated_at on public.bots;
 create trigger bots_updated_at before update on public.bots for each row execute procedure public.set_updated_at();
-
 drop trigger if exists trading_accounts_updated_at on public.trading_accounts;
 create trigger trading_accounts_updated_at before update on public.trading_accounts for each row execute procedure public.set_updated_at();
-
 drop trigger if exists subscriptions_updated_at on public.subscriptions;
 create trigger subscriptions_updated_at before update on public.subscriptions for each row execute procedure public.set_updated_at();
-
 drop trigger if exists user_settings_updated_at on public.user_settings;
 create trigger user_settings_updated_at before update on public.user_settings for each row execute procedure public.set_updated_at();
 
@@ -153,43 +146,24 @@ alter table public.subscriptions enable row level security;
 alter table public.user_settings enable row level security;
 
 drop policy if exists profiles_select_own on public.profiles;
-create policy profiles_select_own on public.profiles
-for select to authenticated using (id = auth.uid());
-
+create policy profiles_select_own on public.profiles for select to authenticated using (id = auth.uid());
 drop policy if exists profiles_update_own on public.profiles;
-create policy profiles_update_own on public.profiles
-for update to authenticated
-using (id = auth.uid())
-with check (id = auth.uid());
+create policy profiles_update_own on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
 drop policy if exists bots_all_own on public.bots;
-create policy bots_all_own on public.bots
-for all to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+create policy bots_all_own on public.bots for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 drop policy if exists accounts_all_own on public.trading_accounts;
-create policy accounts_all_own on public.trading_accounts
-for all to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+create policy accounts_all_own on public.trading_accounts for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 drop policy if exists trades_all_own on public.trades;
-create policy trades_all_own on public.trades
-for all to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+create policy trades_all_own on public.trades for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 drop policy if exists subscriptions_select_own on public.subscriptions;
-create policy subscriptions_select_own on public.subscriptions
-for select to authenticated
-using (user_id = auth.uid());
+create policy subscriptions_select_own on public.subscriptions for select to authenticated using (user_id = auth.uid());
 
 drop policy if exists settings_all_own on public.user_settings;
-create policy settings_all_own on public.user_settings
-for all to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+create policy settings_all_own on public.user_settings for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- Build 02 intentionally does not allow normal users to create/update subscription rows.
 -- Paystack webhook/server code will handle entitlement updates in the next build.
