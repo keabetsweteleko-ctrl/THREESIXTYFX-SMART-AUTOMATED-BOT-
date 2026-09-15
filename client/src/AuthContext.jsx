@@ -13,7 +13,6 @@ export function AuthProvider({ children }) {
       setProfile(null);
       return;
     }
-
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -28,22 +27,17 @@ export function AuthProvider({ children }) {
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
-
       setSession(data.session);
       await loadProfile(data.session?.user ?? null);
-
       if (mounted) setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, nextSession) => {
-        if (!mounted) return;
-
-        setSession(nextSession);
-        await loadProfile(nextSession?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (!mounted) return;
+      setSession(nextSession);
+      await loadProfile(nextSession?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
       mounted = false;
@@ -55,43 +49,25 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName }
-      }
+      options: { data: { full_name: fullName } }
     });
-
     if (error) throw error;
     return data;
   };
 
   const signIn = async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return data;
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-
     if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        profile,
-        loading,
-        signUp,
-        signIn,
-        signOut
-      }}
-    >
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -99,10 +75,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const value = useContext(AuthContext);
-
-  if (!value) {
-    throw new Error('useAuth must be used inside AuthProvider');
-  }
-
+  if (!value) throw new Error('useAuth must be used inside AuthProvider');
   return value;
 }
