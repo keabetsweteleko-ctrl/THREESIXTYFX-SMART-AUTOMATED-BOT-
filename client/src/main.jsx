@@ -86,14 +86,8 @@ function Pricing() {
     const email = window.prompt('Enter your email for Paystack checkout:');
     if (!email) return;
     setBusy(true);
-
     try {
-      const r = await fetch('/api/paystack/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, plan })
-      });
-
+      const r = await fetch('/api/paystack/initialize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, plan }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Unable to initialize payment.');
       window.location.href = d.authorization_url;
@@ -117,7 +111,6 @@ function Payment({ reference }) {
 
   useEffect(() => {
     if (!reference) return;
-
     fetch(`/api/paystack/verify/${encodeURIComponent(reference)}`)
       .then(async r => ({ ok: r.ok, data: await r.json() }))
       .then(({ ok, data }) => setState({ loading: false, ok, data }))
