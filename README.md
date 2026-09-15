@@ -35,4 +35,4 @@ Never commit secret keys to GitHub.
 
 ```bash
 npm install
-npm run dev
+npm run dev 
