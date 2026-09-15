@@ -18,7 +18,7 @@ Create a Supabase project, then open **SQL Editor** and run:
 
 `supabase/001_initial_schema.sql`
 
-Supabase's current React quickstart uses `@supabase/supabase-js` and environment variables for the project URL and publishable key. Keep server-only secrets such as the Paystack secret key on the server.
+Supabase's current React quickstart uses `@supabase/supabase-js` and environment variables for the project URL and publishable key. Keep server-only secrets such as the Paystack secret key on the server. See the official docs for the current setup. 
 
 ## 2. Add environment variables
 
