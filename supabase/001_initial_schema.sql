@@ -167,3 +167,59 @@ create policy settings_all_own on public.user_settings for all to authenticated 
 
 -- Build 02 intentionally does not allow normal users to create/update subscription rows.
 -- Paystack webhook/server code will handle entitlement updates in the next build.
+-- ============================================
+-- THREESIXTYFX LICENSE SYSTEM
+-- Build 2 License Foundation
+-- ============================================
+
+create table if not exists public.licenses (
+  id uuid primary key default gen_random_uuid(),
+
+  code text not null unique,
+
+  plan text not null
+    check (plan in ('pro', 'lifetime')),
+
+  status text not null default 'unused'
+    check (status in ('unused', 'active', 'expired', 'revoked')),
+
+  created_by uuid references auth.users(id) on delete set null,
+
+  used_by uuid references auth.users(id) on delete set null,
+
+  created_at timestamptz not null default now(),
+
+  activated_at timestamptz,
+
+  expires_at timestamptz,
+
+  updated_at timestamptz not null default now()
+);
+
+-- Automatically update the updated_at timestamp
+drop trigger if exists licenses_updated_at on public.licenses;
+
+create trigger licenses_updated_at
+before update on public.licenses
+for each row
+execute procedure public.set_updated_at();
+
+-- Enable Row Level Security
+alter table public.licenses enable row level security;
+
+-- Users may only see licenses that belong to their own account.
+drop policy if exists licenses_select_own on public.licenses;
+
+create policy licenses_select_own
+on public.licenses
+for select
+to authenticated
+using (
+  used_by = auth.uid()
+);
+
+-- Users must NOT be allowed to create, edit, revoke,
+-- or delete licenses directly.
+--
+-- License creation and administration will be handled
+-- by the THREESIXTYFX admin system.
