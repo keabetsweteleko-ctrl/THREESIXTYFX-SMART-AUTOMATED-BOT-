@@ -80,31 +80,120 @@ function Trades() {
 }
 
 function Pricing() {
+  const { user } = useAuth();
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  const pay = async (plan) => {
-    const email = window.prompt('Enter your email for Paystack checkout:');
-    if (!email) return;
+  const activateLicense = async () => {
+    if (!user) {
+      setError('Please sign in before activating a license.');
+      return;
+    }
+
+    if (!code.trim()) {
+      setError('Please enter your activation code.');
+      return;
+    }
+
     setBusy(true);
+    setError('');
+    setMessage('');
+
     try {
-      const r = await fetch('/api/paystack/initialize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, plan }) });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Unable to initialize payment.');
-      window.location.href = d.authorization_url;
-    } catch (e) {
-      alert(e.message);
+      const { data, error } = await supabase.rpc('activate_license', {
+        p_code: code.trim()
+      });
+
+      if (error) throw error;
+
+      setMessage(
+        data?.plan === 'lifetime'
+          ? 'Lifetime license activated successfully.'
+          : 'Pro license activated successfully. Your 30-day access has started.'
+      );
+
+      setCode('');
+    } catch (err) {
+      setError(err.message || 'License activation failed.');
+    } finally {
       setBusy(false);
     }
   };
 
-  return <div className="pricing">
-    <div className="price panel"><span className="eyebrow">MONTHLY</span><h2>PRO</h2><strong>R699 <small>/ month</small></strong><p>Full automation, advanced dashboard, alerts and multi-account features.</p><ul><li>Trading bots & strategies</li><li>MetaTrader 5 account management</li><li>Trade history & analytics</li><li>Email/trade alerts</li></ul><button className="gold" disabled={busy} onClick={() => pay('pro')}>{busy ? 'Opening checkout…' : 'Pay with Paystack'}</button></div>
+  return (
+    <div className="page">
+      <div className="pageHeader">
+        <div>
+          <div className="eyebrow">THREESIXTYFX ACCESS</div>
+          <h1>Choose Your Plan</h1>
+          <p>Activate your THREESIXTYFX access using an activation code.</p>
+        </div>
+      </div>
 
-    <div className="price panel"><span className="eyebrow">ONE TIME</span><h2>LIFETIME</h2><strong>R1,999</strong><p>One-time software license for the lifetime tier.</p><ul><li>All Pro features</li><li>Lifetime access</li><li>Priority updates</li><li>No monthly subscription</li></ul><button className="gold" disabled={busy} onClick={() => pay('lifetime')}>{busy ? 'Opening checkout…' : 'Pay with Paystack'}</button></div>
+      <div className="pricingGrid">
+        <div className="card">
+          <div className="cardTitle">THREESIXTYFX Pro</div>
+          <div className="price">$49</div>
+          <div className="muted">per month</div>
 
-    <div className="notice">Pricing is currently configurable in the server environment. For South African Paystack accounts, checkout is processed in ZAR; we will set the final production prices before launch.</div>
-  </div>;
+          <ul className="featureList">
+            <li>Trading automation platform</li>
+            <li>Bot management</li>
+            <li>Trading account management</li>
+            <li>Trade history</li>
+            <li>30 days of access per activation</li>
+          </ul>
+        </div>
+
+        <div className="card featuredCard">
+          <div className="cardTitle">THREESIXTYFX Lifetime</div>
+          <div className="price">$100</div>
+          <div className="muted">one-time</div>
+
+          <ul className="featureList">
+            <li>Full THREESIXTYFX platform access</li>
+            <li>Trading automation platform</li>
+            <li>Bot management</li>
+            <li>Trading account management</li>
+            <li>No subscription expiry</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="card activationCard">
+        <div className="cardTitle">Activate Your License</div>
+        <p className="muted">
+          If you have received an activation code after purchasing access,
+          enter it below.
+        </p>
+
+        <div className="activationForm">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Enter your activation code"
+            autoComplete="off"
+          />
+
+          <button
+            className="gold"
+            onClick={activateLicense}
+            disabled={busy}
+          >
+            {busy ? 'Activating…' : 'Activate License'}
+          </button>
+        </div>
+
+        {error && <div className="authError">{error}</div>}
+        {message && <div className="authSuccess">{message}</div>}
+      </div>
+    </div>
+  );
 }
+
+   
 
 function Payment({ reference }) {
   const [state, setState] = useState({ loading: true });
