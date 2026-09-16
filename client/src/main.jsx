@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { AuthProvider, useAuth } from './AuthContext';
 import AuthScreen from './AuthScreen';
+import { supabase } from './lib/supabaseClient';
 
 const bots = [
   { name: 'EUR/USD Trend Following', pair: 'EUR/USD', strategy: 'Trend Following', risk: 'Medium', lot: '0.10', tp: 50, sl: 25, profit: 842.50, win: '68.4%', status: 'Paused' },
