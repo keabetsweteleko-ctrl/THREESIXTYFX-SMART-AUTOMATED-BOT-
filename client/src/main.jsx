@@ -213,6 +213,105 @@ function Payment({ reference }) {
   return <div className="panel center"><div className={success ? 'successIcon' : 'errorIcon'}>{success ? '✓' : '!'}</div><h2>{success ? 'Payment successful' : 'Payment not confirmed'}</h2><p>{success ? 'Your transaction has been verified. Account entitlement will be connected in the database phase.' : (state.error || state.data?.message || 'Please contact support if you believe you were charged.')}</p><button className="gold" onClick={() => { window.history.replaceState({}, '', window.location.pathname); window.location.reload(); }}>Back to THREESIXTYFX</button></div>;
 }
 
+function AdminLicenses() {
+  const { user } = useAuth();
+  const [plan, setPlan] = useState('pro');
+  const [days, setDays] = useState(30);
+  const [license, setLicense] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const generateLicense = async () => {
+    setBusy(true);
+    setError('');
+    setLicense(null);
+
+    try {
+      const { data, error } = await supabase.rpc('generate_license', {
+        p_plan: plan,
+        p_days: plan === 'pro' ? Number(days) : 30
+      });
+
+      if (error) throw error;
+
+      setLicense(data);
+    } catch (err) {
+      setError(err.message || 'Unable to generate license.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="page">
+      <div className="pageHeader">
+        <div>
+          <div className="eyebrow">ADMIN CONTROL</div>
+          <h1>License Manager</h1>
+          <p>Generate THREESIXTYFX activation codes for customers.</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="cardTitle">Generate Activation Code</div>
+
+        <div className="formGrid">
+          <label>
+            Plan
+            <select
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+            >
+              <option value="pro">Pro</option>
+              <option value="lifetime">Lifetime</option>
+            </select>
+          </label>
+
+          {plan === 'pro' && (
+            <label>
+              Duration (days)
+              <input
+                type="number"
+                min="1"
+                max="3650"
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+              />
+            </label>
+          )}
+        </div>
+
+        <button
+          className="gold"
+          onClick={generateLicense}
+          disabled={busy}
+        >
+          {busy ? 'Generating…' : 'Generate License Code'}
+        </button>
+
+        {error && <div className="authError">{error}</div>}
+
+        {license && (
+          <div className="licenseResult">
+            <div className="muted">New activation code</div>
+
+            <div className="licenseCode">
+              {license.code}
+            </div>
+
+            <div className="muted">
+              Plan: {license.plan}
+            </div>
+
+            <div className="muted">
+              Status: {license.status}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 function Settings() {
   return <div className="panel"><h2>Risk Management</h2><div className="form"><label>Default Risk Level<select><option>Medium</option><option>Low</option><option>High</option></select></label><label>Max Daily Loss ($)<input defaultValue="500" /></label><label>Max Open Trades<input defaultValue="5" /></label><label>Trading Hours<select><option>24/5</option><option>Custom</option></select></label></div><button className="gold">Save Settings</button></div>;
 }
