@@ -56,6 +56,7 @@ function App() {
       {page === 'Trade History' && <Trades />}
       {page === 'Pricing' && <Pricing />}
       {page === 'Settings' && <Settings />}
+{page === 'Admin Licenses' && <AdminLicenses />}
       {page === 'Payment' && <Payment reference={reference} />}
     </main>
   </div>;
