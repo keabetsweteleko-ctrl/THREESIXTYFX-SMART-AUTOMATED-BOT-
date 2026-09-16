@@ -1,6 +1,8 @@
-name: THREESIXTYFX Build
+ -name: Build THREESIXTYFX
+ working-directory: client
+ run: npm run build
 
-on:
+ on:
   push:
     branches: [ main ]
   pull_request:
