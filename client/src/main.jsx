@@ -34,7 +34,7 @@ function App() {
   if (loading) return <div className="authLoading"><div className="brand">THREESIXTY<span>FX</span><small>LOADING CONTROL CENTER…</small></div></div>;
   if (!user) return <AuthScreen />;
 
-  const nav = ['Dashboard', 'Trading Bots', 'Accounts', 'Trade History', 'Pricing', 'Settings'];
+  const nav = ['Dashboard', 'Trading Bots', 'Accounts', 'Trade History', 'Pricing', 'Settings', 'Admin Licenses'];
   const go = (next) => { setPage(next); setMenuOpen(false); if (!reference) window.history.replaceState({}, '', window.location.pathname); };
   const displayName = profile?.full_name || user.email?.split('@')[0] || 'Trader';
 
