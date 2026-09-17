@@ -6,14 +6,63 @@ import AuthScreen from './AuthScreen';
 import { supabase } from './lib/supabaseClient';
 
 const bots = [
-  { name: 'EUR/USD Trend Following', pair: 'EUR/USD', strategy: 'Trend Following', risk: 'Medium', lot: '0.10', tp: 50, sl: 25, profit: 842.50, win: '68.4%', status: 'Paused' },
-  { name: 'GBP Scalper Pro', pair: 'GBP/USD', strategy: 'Scalping', risk: 'High', lot: '0.20', tp: 15, sl: 10, profit: 210.75, win: '72.1%', status: 'Paused' },
-  { name: 'JPY Grid Hunter', pair: 'USD/JPY', strategy: 'Grid', risk: 'Medium', lot: '0.05', tp: 30, sl: 20, profit: 126.20, win: '64.8%', status: 'Stopped' }
+  {
+    name: 'EUR/USD Trend Following',
+    pair: 'EUR/USD',
+    strategy: 'Trend Following',
+    risk: 'Medium',
+    lot: '0.10',
+    tp: 50,
+    sl: 25,
+    profit: 842.5,
+    win: '68.4%',
+    status: 'Paused'
+  },
+  {
+    name: 'GBP Scalper Pro',
+    pair: 'GBP/USD',
+    strategy: 'Scalping',
+    risk: 'High',
+    lot: '0.20',
+    tp: 15,
+    sl: 10,
+    profit: 210.75,
+    win: '72.1%',
+    status: 'Paused'
+  },
+  {
+    name: 'JPY Grid Hunter',
+    pair: 'USD/JPY',
+    strategy: 'Grid',
+    risk: 'Medium',
+    lot: '0.05',
+    tp: 30,
+    sl: 20,
+    profit: 126.2,
+    win: '64.8%',
+    status: 'Stopped'
+  }
 ];
 
 const accounts = [
-  { broker: 'IC Markets', platform: 'MetaTrader 5', number: '••••4821', server: 'ICMarketsSC-Demo', leverage: '1:500', equity: '$16,053.25', status: 'Connected' },
-  { broker: 'Pepperstone', platform: 'MetaTrader 5', number: '••••1930', server: 'Pepperstone-Demo', leverage: '1:500', equity: '$8,420.10', status: 'Connected' }
+  {
+    broker: 'IC Markets',
+    platform: 'MetaTrader 5',
+    number: '••••4821',
+    server: 'ICMarketsSC-Demo',
+    leverage: '1:500',
+    equity: '$16,053.25',
+    status: 'Connected'
+  },
+  {
+    broker: 'Pepperstone',
+    platform: 'MetaTrader 5',
+    number: '••••1930',
+    server: 'Pepperstone-Demo',
+    leverage: '1:500',
+    equity: '$8,420.10',
+    status: 'Connected'
+  }
 ];
 
 const trades = [
@@ -27,14 +76,20 @@ const trades = [
 function App() {
   const { user, profile, loading, signOut } = useAuth();
 
-  const params = new URLSearchParams(window.location.search);
-  const reference = params.get('reference');
-
-  const [page, setPage] = useState(reference ? 'Payment' : 'Dashboard');
+  const [page, setPage] = useState('Dashboard');
   const [menuOpen, setMenuOpen] = useState(false);
-
   const [subscription, setSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+
+  const reference = new URLSearchParams(window.location.search).get(
+    'reference'
+  );
+
+  useEffect(() => {
+    if (reference) {
+      setPage('Payment');
+    }
+  }, [reference]);
 
   useEffect(() => {
     if (!user) {
@@ -43,27 +98,40 @@ function App() {
       return;
     }
 
-    const loadSubscription = async () => {
+    let active = true;
+
+    async function loadSubscription() {
       setSubscriptionLoading(true);
 
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('id, plan, status, starts_at, expires_at, license_id')
+        .select(
+          'id, plan, status, starts_at, expires_at, license_id'
+        )
         .eq('user_id', user.id)
         .eq('status', 'active')
         .maybeSingle();
 
+      if (!active) return;
+
       if (error) {
-        console.error('THREESIXTYFX subscription error:', error);
+        console.error(
+          'THREESIXTYFX subscription error:',
+          error
+        );
         setSubscription(null);
       } else {
         setSubscription(data);
       }
 
       setSubscriptionLoading(false);
-    };
+    }
 
     loadSubscription();
+
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   if (loading) {
@@ -71,15 +139,17 @@ function App() {
       <div className="authLoading">
         <div className="brand">
           THREESIXTY<span>FX</span>
-          <small>LOADING CONTROL CENTER…</small>
+          <small>LOADING CONTROL CENTER...</small>
         </div>
       </div>
     );
   }
 
-  if (!user) return <AuthScreen />;
+  if (!user) {
+    return <AuthScreen />;
+  }
 
-  const nav = [
+  const navigation = [
     'Dashboard',
     'Trading Bots',
     'Accounts',
@@ -89,34 +159,40 @@ function App() {
     'Admin Licenses'
   ];
 
-  const go = (next) => {
-    setPage(next);
+  function navigate(nextPage) {
+    setPage(nextPage);
     setMenuOpen(false);
 
     if (!reference) {
-      window.history.replaceState({}, '', window.location.pathname);
+      window.history.replaceState(
+        {},
+        '',
+        window.location.pathname
+      );
     }
-  };
+  }
 
   const displayName =
     profile?.full_name ||
     user.email?.split('@')[0] ||
     'Trader';
 
-  const hasActiveSubscription =
-    subscription?.status === 'active';
+  let planLabel = 'NO PLAN';
 
-  const planLabel = subscription?.plan === 'lifetime'
-    ? 'LIFETIME'
-    : subscription?.plan === 'pro'
-      ? 'PRO'
-      : 'NO PLAN';
+  if (subscription?.plan === 'pro') {
+    planLabel = 'PRO';
+  }
+
+  if (subscription?.plan === 'lifetime') {
+    planLabel = 'LIFETIME';
+  }
 
   return (
     <div className="app">
       <button
         className="mobileMenu"
         onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="Open menu"
       >
         ☰
       </button>
@@ -134,24 +210,30 @@ function App() {
 
           <div style={{ marginTop: '8px' }}>
             <span className="badge">
-              {subscriptionLoading ? 'CHECKING PLAN…' : planLabel}
+              {subscriptionLoading
+                ? 'CHECKING PLAN...'
+                : planLabel}
             </span>
           </div>
         </div>
 
-        {nav.map((n) => (
+        {navigation.map((item) => (
           <button
-            className={page === n ? 'nav active' : 'nav'}
-            onClick={() => go(n)}
-            key={n}
+            key={item}
+            className={
+              page === item
+                ? 'nav active'
+                : 'nav'
+            }
+            onClick={() => navigate(item)}
           >
-            {n}
+            {item}
           </button>
         ))}
 
         <button
           className="nav signout"
-          onClick={() => signOut()}
+          onClick={signOut}
         >
           Sign Out
         </button>
@@ -169,14 +251,17 @@ function App() {
             </p>
           </div>
 
-          {page !== 'Pricing' && page !== 'Payment' && (
-            <button
-              className="gold"
-              onClick={() => go('Trading Bots')}
-            >
-              Manage Bots
-            </button>
-          )}
+          {page !== 'Pricing' &&
+            page !== 'Payment' && (
+              <button
+                className="gold"
+                onClick={() =>
+                  navigate('Trading Bots')
+                }
+              >
+                Manage Bots
+              </button>
+            )}
         </header>
 
         {page === 'Dashboard' && (
@@ -219,17 +304,27 @@ function Card({ title, value, sub }) {
 }
 
 function Dashboard({ subscription }) {
-  const plan = subscription?.plan === 'lifetime'
-    ? 'Lifetime'
-    : subscription?.plan === 'pro'
-      ? 'Pro'
-      : 'No active plan';
+  let plan = 'No active plan';
 
-  const expiry = subscription?.expires_at
-    ? new Date(subscription.expires_at).toLocaleDateString()
-    : subscription?.plan === 'lifetime'
-      ? 'Never'
-      : '—';
+  if (subscription?.plan === 'pro') {
+    plan = 'Pro';
+  }
+
+  if (subscription?.plan === 'lifetime') {
+    plan = 'Lifetime';
+  }
+
+  let expiry = '—';
+
+  if (subscription?.plan === 'lifetime') {
+    expiry = 'Never';
+  } else if (subscription?.expires_at) {
+    expiry = new Date(
+      subscription.expires_at
+    ).toLocaleDateString();
+  }
+
+  const active = subscription?.status === 'active';
 
   return (
     <>
@@ -262,12 +357,15 @@ function Dashboard({ subscription }) {
       <section className="panel">
         <div className="row">
           <div>
-            <div className="eyebrow">ACCOUNT ACCESS</div>
+            <div className="eyebrow">
+              ACCOUNT ACCESS
+            </div>
+
             <h2>{plan} Plan</h2>
 
             <p>
-              {subscription?.status === 'active'
-                ? subscription?.plan === 'lifetime'
+              {active
+                ? subscription.plan === 'lifetime'
                   ? 'Your THREESIXTYFX Lifetime access is active.'
                   : `Your THREESIXTYFX Pro access is active until ${expiry}.`
                 : 'Activate a THREESIXTYFX license to unlock your trading platform access.'}
@@ -275,7 +373,7 @@ function Dashboard({ subscription }) {
           </div>
 
           <span className="badge">
-            {subscription?.status === 'active'
+            {active
               ? 'ACTIVE'
               : 'NO ACTIVE PLAN'}
           </span>
@@ -284,8 +382,10 @@ function Dashboard({ subscription }) {
 
       <section className="panel">
         <h2>Performance</h2>
+
         <p>
-          Your performance analytics will appear here once live trading data is connected.
+          Your performance analytics will appear
+          here once live trading data is connected.
         </p>
       </section>
     </>
@@ -299,7 +399,9 @@ function Bots() {
         <button
           className="gold"
           onClick={() =>
-            alert('Bot creation is the next database-backed feature.')
+            alert(
+              'Bot creation is the next database-backed feature.'
+            )
           }
         >
           + Create Bot
@@ -307,32 +409,56 @@ function Bots() {
       </div>
 
       <div className="list">
-        {bots.map((b) => (
-          <div className="panel" key={b.name}>
+        {bots.map((bot) => (
+          <div
+            className="panel"
+            key={bot.name}
+          >
             <div className="row">
               <div>
-                <h2>{b.name}</h2>
-                <p>{b.pair} · {b.strategy}</p>
+                <h2>{bot.name}</h2>
+                <p>
+                  {bot.pair} · {bot.strategy}
+                </p>
               </div>
 
               <span className="badge">
-                {b.status}
+                {bot.status}
               </span>
             </div>
 
             <div className="stats">
-              <span>Risk <b>{b.risk}</b></span>
-              <span>Lot <b>{b.lot}</b></span>
-              <span>TP <b>{b.tp} pips</b></span>
-              <span>SL <b>{b.sl} pips</b></span>
-              <span>Profit <b>${b.profit}</b></span>
-              <span>Win Rate <b>{b.win}</b></span>
+              <span>
+                Risk <b>{bot.risk}</b>
+              </span>
+
+              <span>
+                Lot <b>{bot.lot}</b>
+              </span>
+
+              <span>
+                TP <b>{bot.tp} pips</b>
+              </span>
+
+              <span>
+                SL <b>{bot.sl} pips</b>
+              </span>
+
+              <span>
+                Profit <b>${bot.profit}</b>
+              </span>
+
+              <span>
+                Win Rate <b>{bot.win}</b>
+              </span>
             </div>
 
             <div className="actions">
               <button>Start</button>
               <button>Stop</button>
-              <button className="danger">Delete</button>
+              <button className="danger">
+                Delete
+              </button>
             </div>
           </div>
         ))}
@@ -348,7 +474,9 @@ function Accounts() {
         <button
           className="gold"
           onClick={() =>
-            alert('Secure MT5 account connection is planned for the trading bridge phase.')
+            alert(
+              'Secure MT5 account connection is planned for the trading bridge phase.'
+            )
           }
         >
           + Connect Account
@@ -356,12 +484,18 @@ function Accounts() {
       </div>
 
       <div className="list">
-        {accounts.map((a) => (
-          <div className="panel" key={a.broker}>
+        {accounts.map((account) => (
+          <div
+            className="panel"
+            key={account.broker}
+          >
             <div className="row">
               <div>
-                <h2>{a.broker}</h2>
-                <p>{a.platform} · {a.status}</p>
+                <h2>{account.broker}</h2>
+                <p>
+                  {account.platform} ·{' '}
+                  {account.status}
+                </p>
               </div>
 
               <span className="badge">
@@ -370,10 +504,21 @@ function Accounts() {
             </div>
 
             <div className="stats">
-              <span>Account <b>{a.number}</b></span>
-              <span>Server <b>{a.server}</b></span>
-              <span>Leverage <b>{a.leverage}</b></span>
-              <span>Equity <b>{a.equity}</b></span>
+              <span>
+                Account <b>{account.number}</b>
+              </span>
+
+              <span>
+                Server <b>{account.server}</b>
+              </span>
+
+              <span>
+                Leverage <b>{account.leverage}</b>
+              </span>
+
+              <span>
+                Equity <b>{account.equity}</b>
+              </span>
             </div>
 
             <button>Remove</button>
@@ -402,17 +547,21 @@ function Trades() {
               'Volume',
               'Open Price',
               'Close Price'
-            ].map((x) => (
-              <th key={x}>{x}</th>
+            ].map((heading) => (
+              <th key={heading}>
+                {heading}
+              </th>
             ))}
           </tr>
         </thead>
 
         <tbody>
-          {trades.map((r, i) => (
-            <tr key={i}>
-              {r.map((x, j) => (
-                <td key={j}>{x}</td>
+          {trades.map((trade, index) => (
+            <tr key={index}>
+              {trade.map((value, valueIndex) => (
+                <td key={valueIndex}>
+                  {value}
+                </td>
               ))}
             </tr>
           ))}
@@ -422,7 +571,10 @@ function Trades() {
   );
 }
 
-function Pricing({ subscription, onSubscriptionUpdated }) {
+function Pricing({
+  subscription,
+  onSubscriptionUpdated
+}) {
   const { user } = useAuth();
 
   const [code, setCode] = useState('');
@@ -430,24 +582,36 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const activePlan = subscription?.plan === 'lifetime'
-    ? 'Lifetime'
-    : subscription?.plan === 'pro'
-      ? 'Pro'
-      : null;
+  let activePlan = null;
 
-  const expiry = subscription?.expires_at
-    ? new Date(subscription.expires_at).toLocaleDateString()
-    : null;
+  if (subscription?.plan === 'pro') {
+    activePlan = 'Pro';
+  }
 
-  const activateLicense = async () => {
+  if (subscription?.plan === 'lifetime') {
+    activePlan = 'Lifetime';
+  }
+
+  let expiry = null;
+
+  if (subscription?.expires_at) {
+    expiry = new Date(
+      subscription.expires_at
+    ).toLocaleDateString();
+  }
+
+  async function activateLicense() {
     if (!user) {
-      setError('Please sign in before activating a license.');
+      setError(
+        'Please sign in before activating a license.'
+      );
       return;
     }
 
     if (!code.trim()) {
-      setError('Please enter your activation code.');
+      setError(
+        'Please enter your activation code.'
+      );
       return;
     }
 
@@ -456,25 +620,29 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
     setMessage('');
 
     try {
-      const { data, error } = await supabase.rpc(
-        'activate_license',
-        {
-          p_code: code.trim()
-        }
-      );
+      const { data, error: rpcError } =
+        await supabase.rpc(
+          'activate_license',
+          {
+            p_code: code.trim()
+          }
+        );
 
-      if (error) throw error;
+      if (rpcError) {
+        throw rpcError;
+      }
 
       if (data?.plan === 'lifetime') {
         setMessage(
           'Lifetime license activated successfully. Your access has no expiry.'
         );
       } else if (data?.expires_at) {
-        const formattedExpiry =
-          new Date(data.expires_at).toLocaleDateString();
+        const date = new Date(
+          data.expires_at
+        ).toLocaleDateString();
 
         setMessage(
-          `Pro license activated successfully. Your access is active until ${formattedExpiry}.`
+          `Pro license activated successfully. Your access is active until ${date}.`
         );
       } else {
         setMessage(
@@ -484,25 +652,32 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
 
       setCode('');
 
-      const { data: updatedSubscription, error: subscriptionError } =
-        await supabase
-          .from('subscriptions')
-          .select('id, plan, status, starts_at, expires_at, license_id')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .maybeSingle();
+      const {
+        data: updatedSubscription,
+        error: subscriptionError
+      } = await supabase
+        .from('subscriptions')
+        .select(
+          'id, plan, status, starts_at, expires_at, license_id'
+        )
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
 
       if (!subscriptionError) {
-        onSubscriptionUpdated(updatedSubscription);
+        onSubscriptionUpdated(
+          updatedSubscription
+        );
       }
     } catch (err) {
       setError(
-        err.message || 'License activation failed.'
+        err?.message ||
+          'License activation failed.'
       );
     } finally {
       setBusy(false);
     }
-  };
+  }
 
   return (
     <div className="page">
@@ -515,7 +690,8 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
           <h1>Choose Your Plan</h1>
 
           <p>
-            Activate your THREESIXTYFX access using an activation code.
+            Activate your THREESIXTYFX access using
+            an activation code.
           </p>
         </div>
       </div>
@@ -552,20 +728,24 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
             THREESIXTYFX Pro
           </div>
 
-          <div className="price">
-            $49
-          </div>
+          <div className="price">$49</div>
 
           <div className="muted">
             per month
           </div>
 
           <ul className="featureList">
-            <li>Trading automation platform</li>
+            <li>
+              Trading automation platform
+            </li>
             <li>Bot management</li>
-            <li>Trading account management</li>
+            <li>
+              Trading account management
+            </li>
             <li>Trade history</li>
-            <li>30 days of access per activation</li>
+            <li>
+              30 days of access per activation
+            </li>
           </ul>
         </div>
 
@@ -574,20 +754,26 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
             THREESIXTYFX Lifetime
           </div>
 
-          <div className="price">
-            $100
-          </div>
+          <div className="price">$100</div>
 
           <div className="muted">
             one-time
           </div>
 
           <ul className="featureList">
-            <li>Full THREESIXTYFX platform access</li>
-            <li>Trading automation platform</li>
+            <li>
+              Full THREESIXTYFX platform access
+            </li>
+            <li>
+              Trading automation platform
+            </li>
             <li>Bot management</li>
-            <li>Trading account management</li>
-            <li>No subscription expiry</li>
+            <li>
+              Trading account management
+            </li>
+            <li>
+              No subscription expiry
+            </li>
           </ul>
         </div>
       </div>
@@ -598,14 +784,16 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
         </div>
 
         <p className="muted">
-          If you have received an activation code after purchasing access,
-          enter it below.
+          If you have received an activation code
+          after purchasing access, enter it below.
         </p>
 
         <div className="activationForm">
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(event) =>
+              setCode(event.target.value)
+            }
             placeholder="Enter your activation code"
             autoComplete="off"
           />
@@ -616,7 +804,7 @@ function Pricing({ subscription, onSubscriptionUpdated }) {
             disabled={busy}
           >
             {busy
-              ? 'Activating…'
+              ? 'Activating...'
               : 'Activate License'}
           </button>
         </div>
@@ -643,37 +831,52 @@ function Payment({ reference }) {
   });
 
   useEffect(() => {
-    if (!reference) return;
+    if (!reference) {
+      return;
+    }
+
+    let active = true;
 
     fetch(
-      `/api/paystack/verify/${encodeURIComponent(reference)}`
+      `/api/paystack/verify/${encodeURIComponent(
+        reference
+      )}`
     )
-      .then(async (r) => ({
-        ok: r.ok,
-        data: await r.json()
+      .then(async (response) => ({
+        ok: response.ok,
+        data: await response.json()
       }))
-      .then(({ ok, data }) =>
-        setState({
-          loading: false,
-          ok,
-          data
-        })
-      )
-      .catch((error) =>
-        setState({
-          loading: false,
-          ok: false,
-          error: error.message
-        })
-      );
+      .then(({ ok, data }) => {
+        if (active) {
+          setState({
+            loading: false,
+            ok,
+            data
+          });
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setState({
+            loading: false,
+            ok: false,
+            error: error.message
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [reference]);
 
   if (state.loading) {
     return (
       <div className="panel center">
-        <h2>Checking your payment…</h2>
+        <h2>Checking your payment...</h2>
         <p>
-          We are verifying the Paystack transaction securely.
+          We are verifying the Paystack transaction
+          securely.
         </p>
       </div>
     );
@@ -704,11 +907,9 @@ function Payment({ reference }) {
       <p>
         {success
           ? 'Your transaction has been verified. Account entitlement will be connected in the payment integration phase.'
-          : (
-            state.error ||
+          : state.error ||
             state.data?.message ||
-            'Please contact support if you believe you were charged.'
-          )}
+            'Please contact support if you believe you were charged.'}
       </p>
 
       <button
@@ -719,7 +920,6 @@ function Payment({ reference }) {
             '',
             window.location.pathname
           );
-
           window.location.reload();
         }}
       >
@@ -734,103 +934,4 @@ function AdminLicenses() {
 
   const [plan, setPlan] = useState('pro');
   const [days, setDays] = useState(30);
-  const [license, setLicense] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const generateLicense = async () => {
-    setBusy(true);
-    setError('');
-    setLicense(null);
-
-    try {
-      const { data, error } = await supabase.rpc(
-        'generate_license',
-        {
-          p_plan: plan,
-          p_days:
-            plan === 'pro'
-              ? Number(days)
-              : 30
-        }
-      );
-
-      if (error) throw error;
-
-      setLicense(data);
-    } catch (err) {
-      setError(
-        err.message ||
-        'Unable to generate license.'
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="page">
-      <div className="pageHeader">
-        <div>
-          <div className="eyebrow">
-            ADMIN CONTROL
-          </div>
-
-          <h1>License Manager</h1>
-
-          <p>
-            Generate THREESIXTYFX activation codes for customers.
-          </p>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="cardTitle">
-          Generate Activation Code
-        </div>
-
-        <div className="formGrid">
-          <label>
-            Plan
-
-            <select
-              value={plan}
-              onChange={(e) =>
-                setPlan(e.target.value)
-              }
-            >
-              <option value="pro">
-                Pro
-              </option>
-
-              <option value="lifetime">
-                Lifetime
-              </option>
-            </select>
-          </label>
-
-          {plan === 'pro' && (
-            <label>
-              Duration (days)
-
-              <input
-                type="number"
-                min="1"
-                max="3650"
-                value={days}
-                onChange={(e) =>
-                  setDays(e.target.value)
-                }
-              />
-            </label>
-          )}
-        </div>
-
-        <button
-          className="gold"
-          onClick={generateLicense}
-          disabled={busy}
-        >
-          {busy
-            ? 'Generating…'
-            : 'Generate License Cod
+  const [license, setLicense] = u
