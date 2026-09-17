@@ -220,11 +220,7 @@ function App() {
         {navigation.map((item) => (
           <button
             key={item}
-            className={
-              page === item
-                ? 'nav active'
-                : 'nav'
-            }
+            className={page === item ? 'nav active' : 'nav'}
             onClick={() => navigate(item)}
           >
             {item}
@@ -255,9 +251,7 @@ function App() {
             page !== 'Payment' && (
               <button
                 className="gold"
-                onClick={() =>
-                  navigate('Trading Bots')
-                }
+                onClick={() => navigate('Trading Bots')}
               >
                 Manage Bots
               </button>
@@ -373,9 +367,7 @@ function Dashboard({ subscription }) {
           </div>
 
           <span className="badge">
-            {active
-              ? 'ACTIVE'
-              : 'NO ACTIVE PLAN'}
+            {active ? 'ACTIVE' : 'NO ACTIVE PLAN'}
           </span>
         </div>
       </section>
@@ -410,10 +402,7 @@ function Bots() {
 
       <div className="list">
         {bots.map((bot) => (
-          <div
-            className="panel"
-            key={bot.name}
-          >
+          <div className="panel" key={bot.name}>
             <div className="row">
               <div>
                 <h2>{bot.name}</h2>
@@ -485,16 +474,12 @@ function Accounts() {
 
       <div className="list">
         {accounts.map((account) => (
-          <div
-            className="panel"
-            key={account.broker}
-          >
+          <div className="panel" key={account.broker}>
             <div className="row">
               <div>
                 <h2>{account.broker}</h2>
                 <p>
-                  {account.platform} ·{' '}
-                  {account.status}
+                  {account.platform} · {account.status}
                 </p>
               </div>
 
@@ -548,9 +533,7 @@ function Trades() {
               'Open Price',
               'Close Price'
             ].map((heading) => (
-              <th key={heading}>
-                {heading}
-              </th>
+              <th key={heading}>{heading}</th>
             ))}
           </tr>
         </thead>
@@ -559,9 +542,7 @@ function Trades() {
           {trades.map((trade, index) => (
             <tr key={index}>
               {trade.map((value, valueIndex) => (
-                <td key={valueIndex}>
-                  {value}
-                </td>
+                <td key={valueIndex}>{value}</td>
               ))}
             </tr>
           ))}
@@ -735,17 +716,11 @@ function Pricing({
           </div>
 
           <ul className="featureList">
-            <li>
-              Trading automation platform
-            </li>
+            <li>Trading automation platform</li>
             <li>Bot management</li>
-            <li>
-              Trading account management
-            </li>
+            <li>Trading account management</li>
             <li>Trade history</li>
-            <li>
-              30 days of access per activation
-            </li>
+            <li>30 days of access per activation</li>
           </ul>
         </div>
 
@@ -761,19 +736,11 @@ function Pricing({
           </div>
 
           <ul className="featureList">
-            <li>
-              Full THREESIXTYFX platform access
-            </li>
-            <li>
-              Trading automation platform
-            </li>
+            <li>Full THREESIXTYFX platform access</li>
+            <li>Trading automation platform</li>
             <li>Bot management</li>
-            <li>
-              Trading account management
-            </li>
-            <li>
-              No subscription expiry
-            </li>
+            <li>Trading account management</li>
+            <li>No subscription expiry</li>
           </ul>
         </div>
       </div>
@@ -832,6 +799,11 @@ function Payment({ reference }) {
 
   useEffect(() => {
     if (!reference) {
+      setState({
+        loading: false,
+        ok: false,
+        error: 'No payment reference was provided.'
+      });
       return;
     }
 
@@ -934,4 +906,21 @@ function AdminLicenses() {
 
   const [plan, setPlan] = useState('pro');
   const [days, setDays] = useState(30);
-  const [license, setLicense] = u
+  const [license, setLicense] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function generateLicense() {
+    if (!user) {
+      setError('You must be signed in.');
+      return;
+    }
+
+    setBusy(true);
+    setError('');
+    setLicense(null);
+
+    try {
+      const { data, error: rpcError } =
+        await supabase.rpc(
+  
