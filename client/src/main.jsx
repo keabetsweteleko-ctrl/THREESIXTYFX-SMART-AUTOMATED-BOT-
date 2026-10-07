@@ -81,9 +81,9 @@ function App() {
   const [subscription, setSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
-  const reference = new URLSearchParams(window.location.search).get(
-    'reference'
-  );
+  const reference = new URLSearchParams(
+    window.location.search
+  ).get('reference');
 
   useEffect(() => {
     if (reference) {
@@ -220,7 +220,9 @@ function App() {
         {navigation.map((item) => (
           <button
             key={item}
-            className={page === item ? 'nav active' : 'nav'}
+            className={
+              page === item ? 'nav active' : 'nav'
+            }
             onClick={() => navigate(item)}
           >
             {item}
@@ -251,7 +253,9 @@ function App() {
             page !== 'Payment' && (
               <button
                 className="gold"
-                onClick={() => navigate('Trading Bots')}
+                onClick={() =>
+                  navigate('Trading Bots')
+                }
               >
                 Manage Bots
               </button>
@@ -277,7 +281,9 @@ function App() {
 
         {page === 'Settings' && <Settings />}
 
-        {page === 'Admin Licenses' && <AdminLicenses />}
+        {page === 'Admin Licenses' && (
+          <AdminLicenses />
+        )}
 
         {page === 'Payment' && (
           <Payment reference={reference} />
@@ -318,7 +324,8 @@ function Dashboard({ subscription }) {
     ).toLocaleDateString();
   }
 
-  const active = subscription?.status === 'active';
+  const active =
+    subscription?.status === 'active';
 
   return (
     <>
@@ -474,7 +481,10 @@ function Accounts() {
 
       <div className="list">
         {accounts.map((account) => (
-          <div className="panel" key={account.broker}>
+          <div
+            className="panel"
+            key={account.broker}
+          >
             <div className="row">
               <div>
                 <h2>{account.broker}</h2>
@@ -542,7 +552,9 @@ function Trades() {
           {trades.map((trade, index) => (
             <tr key={index}>
               {trade.map((value, valueIndex) => (
-                <td key={valueIndex}>{value}</td>
+                <td key={valueIndex}>
+                  {value}
+                </td>
               ))}
             </tr>
           ))}
@@ -923,4 +935,239 @@ function AdminLicenses() {
     try {
       const { data, error: rpcError } =
         await supabase.rpc(
-  
+          'generate_license',
+          {
+            p_plan: plan,
+            p_days:
+              plan === 'pro'
+                ? Number(days)
+                : 30
+          }
+        );
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      setLicense(data);
+    } catch (err) {
+      setError(
+        err?.message ||
+          'Unable to generate license code.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="page">
+      <div className="pageHeader">
+        <div>
+          <div className="eyebrow">
+            ADMIN CONTROL
+          </div>
+
+          <h1>License Manager</h1>
+
+          <p>
+            Generate THREESIXTYFX activation codes
+            for customers.
+          </p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="eyebrow">
+          GENERATE LICENSE
+        </div>
+
+        <h2>Customer Access Code</h2>
+
+        <p>
+          Create a Pro or Lifetime activation code
+          after confirming the customer's purchase.
+        </p>
+
+        <div className="activationForm">
+          <select
+            value={plan}
+            onChange={(event) =>
+              setPlan(event.target.value)
+            }
+          >
+            <option value="pro">
+              Pro — $49
+            </option>
+
+            <option value="lifetime">
+              Lifetime — $100
+            </option>
+          </select>
+
+          {plan === 'pro' && (
+            <input
+              type="number"
+              min="1"
+              max="3650"
+              value={days}
+              onChange={(event) =>
+                setDays(event.target.value)
+              }
+              placeholder="Days"
+            />
+          )}
+
+          <button
+            className="gold"
+            onClick={generateLicense}
+            disabled={busy}
+          >
+            {busy
+              ? 'Generating...'
+              : 'Generate License Code'}
+          </button>
+        </div>
+
+        {error && (
+          <div className="authError">
+            {error}
+          </div>
+        )}
+
+        {license && (
+          <div className="licenseResult">
+            <div className="eyebrow">
+              LICENSE GENERATED
+            </div>
+
+            <h2>
+              {license.plan === 'lifetime'
+                ? 'Lifetime License'
+                : 'Pro License'}
+            </h2>
+
+            <div className="licenseCode">
+              {license.code}
+            </div>
+
+            <p>
+              Status:{' '}
+              <strong>
+                {license.status}
+              </strong>
+            </p>
+
+            {license.expires_at ? (
+              <p>
+                Expires:{' '}
+                <strong>
+                  {new Date(
+                    license.expires_at
+                  ).toLocaleDateString()}
+                </strong>
+              </p>
+            ) : (
+              <p>
+                <strong>
+                  No expiry
+                </strong>
+              </p>
+            )}
+
+            <button
+              onClick={() => {
+                if (
+                  navigator.clipboard &&
+                  license.code
+                ) {
+                  navigator.clipboard.writeText(
+                    license.code
+                  );
+                }
+              }}
+            >
+              Copy License Code
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Settings() {
+  const { user, profile } = useAuth();
+
+  const displayName =
+    profile?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Trader';
+
+  return (
+    <div className="page">
+      <div className="pageHeader">
+        <div>
+          <div className="eyebrow">
+            ACCOUNT SETTINGS
+          </div>
+
+          <h1>Settings</h1>
+
+          <p>
+            Manage your THREESIXTYFX account
+            information.
+          </p>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="eyebrow">
+          PROFILE
+        </div>
+
+        <h2>{displayName}</h2>
+
+        <p>
+          Your account is securely connected to
+          THREESIXTYFX.
+        </p>
+
+        <div className="stats">
+          <span>
+            Name <b>{displayName}</b>
+          </span>
+
+          <span>
+            Email <b>{user?.email || '—'}</b>
+          </span>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="eyebrow">
+          SECURITY
+        </div>
+
+        <h2>Account Security</h2>
+
+        <p>
+          Your authentication is managed securely
+          through Supabase.
+        </p>
+
+        <span className="badge">
+          AUTHENTICATED
+        </span>
+      </div>
+    </div>
+  );
+}
+
+createRoot(
+  document.getElementById('root')
+).render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
